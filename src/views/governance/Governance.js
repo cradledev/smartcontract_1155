@@ -4,9 +4,9 @@ import { Container, Row, Col, Card, Button, Image, ListGroup, InputGroup, FormCo
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {faThumbsUp,faThumbsDown } from '@fortawesome/free-regular-svg-icons'
 import Icon from "react-crypto-icons";
-import './Governonce.css';
+import './Governance.css';
 
-const Governonce = () => {
+const Governance = () => {
     const navigate = useNavigate();
     // const location = useLocation();
     // Fictive call to Google Analytics
@@ -39,7 +39,7 @@ const Governonce = () => {
                   <Card.Body>
                     <Card.Title><label className="card-title-small">unstaked balance</label></Card.Title>
                     <Card.Text>
-                      <Image src="/img/governonce/Cimple_token_unstaked.png"></Image> <label className="text-bolder paddingLeft15">7499 Cimple</label>
+                      <Image src="/img/governance/Cimple_token_unstaked.png"></Image> <label className="text-bolder paddingLeft15">7499 Cimple</label>
                     </Card.Text>
                     <ListGroup variant="flush">
                       <ListGroup.Item
@@ -95,11 +95,11 @@ const Governonce = () => {
                   <Card.Body>
                     <Card.Title><label className="card-title-small">staked balance</label></Card.Title>
                     <Card.Text>
-                      <Image src="/img/governonce/Cimple_token_staked.png"></Image> <label className="text-bolder paddingLeft15">7499 Cimple</label>
+                      <Image src="/img/governance/Cimple_token_staked.png"></Image> <label className="text-bolder paddingLeft15">7499 Cimple</label>
                     </Card.Text>
                     <Card.Title><label className="card-title-small">your cmpg balance</label></Card.Title>
                     <Card.Text>
-                      <Image src="/img/governonce/CMPG_token.png" className="img-responsive" style={{width:'45px', height:'45px'}}></Image> <label className="text-bolder paddingLeft15">7499 Cimple</label>
+                      <Image src="/img/governance/CMPG_token.png" className="img-responsive" style={{width:'45px', height:'45px'}}></Image> <label className="text-bolder paddingLeft15">7499 Cimple</label>
                     </Card.Text>
                     <ListGroup variant="flush">
                       <ListGroup.Item
@@ -215,4 +215,4 @@ const Governonce = () => {
     );
 };
 
-export default Governonce;
+export default Governance;
