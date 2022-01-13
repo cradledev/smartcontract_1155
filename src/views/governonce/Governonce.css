@@ -1,0 +1,31 @@
+.card-footer {
+    background-color: transparent!important;
+    border-top: transparent!important;
+}
+.text-bolder {
+    font-weight: bolder!important;
+}
+.card-title-small {
+    font-size: 12px!important;
+    text-transform: uppercase!important;
+}
+.CMPG-thead {
+    border-top: transparent!important;
+}
+.CMPG-thead tr th {
+    border-top: transparent!important;
+}
+.CMPG-table tr th, .CMPG-table tr td:not(:first-of-type) {
+    text-align: center!important;
+    vertical-align: middle!important;
+}
+
+.vote-progress {
+    width:100px!important;
+}
+.vote-selection tr td, .vote-selection tr th {
+    vertical-align: middle!important;
+}
+/* .CMPG-table .table {
+    border-top: transparent!important;
+} */
