@@ -15,7 +15,7 @@
 .CMPG-thead tr th {
     border-top: transparent!important;
 }
-.CMPG-table tr th, .CMPG-table tr td:not(:first-of-type) {
+.CMPG-table tr th:not(:first-of-type), .CMPG-table tr td:not(:first-of-type) {
     text-align: center!important;
     vertical-align: middle!important;
 }

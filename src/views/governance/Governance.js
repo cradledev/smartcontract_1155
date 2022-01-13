@@ -1,5 +1,5 @@
 import React from "react";
-import { useNavigate, useLocation, useParams } from "react-router";
+import { useNavigate} from "react-router";
 import { Container, Row, Col, Card, Button, Image, ListGroup, InputGroup, FormControl,ProgressBar } from "react-bootstrap";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {faThumbsUp,faThumbsDown } from '@fortawesome/free-regular-svg-icons'
@@ -12,10 +12,10 @@ const Governance = () => {
     // Fictive call to Google Analytics
     // ga.send(["pageview", location.pathname])
     const cmpgData = [
-      {tokenName:"ETH", quantity:100, usdValue:40000},
-      {tokenName:"DAI", quantity:100, usdValue:40000},
-      {tokenName:"MATIC", quantity:100, usdValue:40000},
-      {tokenName:"TETHER", quantity:100, usdValue:40000}
+      {tokenName:"eth", quantity:100, usdValue:40000},
+      {tokenName:"dai", quantity:100, usdValue:40000},
+      {tokenName:"matic", quantity:100, usdValue:40000},
+      {tokenName:"usdt", quantity:100, usdValue:40000}
     ];
 
     const voteSectionData = [
@@ -168,8 +168,8 @@ const Governance = () => {
                         <tbody>
                           {cmpgData.map((item, key) => {
                             return (
-                              <tr>
-                                <td><Icon name="btc" size={25} /><label style={{marginLeft:'10px'}}>{item.tokenName}</label></td>
+                              <tr key={key}>
+                                <td><Icon name={item.tokenName} size={25} /><label style={{marginLeft:'10px', textTransform:'uppercase'}}>{item.tokenName}</label></td>
                                 <td>{item.quantity}</td>
                                 <td>{`$${item.usdValue}`}</td>
                                 <td><Button variant="primary">Claim</Button></td>
@@ -196,8 +196,8 @@ const Governance = () => {
                           return (
                             <tr key={key}>
                               <td>{item.description}</td>
-                              <td className="text-muted"><FontAwesomeIcon icon={faThumbsUp} color={item.status==1?"#20c997":""} size="lg" /></td>
-                              <td className="text-muted"><FontAwesomeIcon icon={faThumbsDown} color={item.status==0?"#eb5757":""} size="lg"/></td>
+                              <td className="text-muted"><FontAwesomeIcon icon={faThumbsUp} color={item.status===1?"#20c997":""} size="lg" /></td>
+                              <td className="text-muted"><FontAwesomeIcon icon={faThumbsDown} color={item.status===0?"#eb5757":""} size="lg"/></td>
                               <td className="vote-progress"><ProgressBar now={item.progress} label={`${item.progress}%`} /></td>
                               <td><a href="#" >Details</a></td>
                             </tr>

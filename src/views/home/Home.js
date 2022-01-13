@@ -1,25 +1,14 @@
 import React from "react";
+import { useNavigate, useLocation } from "react-router";
 import './Home.css'; 
-import { Container, Row, Col } from "react-bootstrap";
-const Home = (props) => {
-    return (
-      <Container fluid>
-        <Row xs={2} md={4} lg={6}>
-          <Col>1 of 2</Col>
-          <Col>2 of 2</Col>
-        </Row>
-        <Row xs={1} md={2}>
-          <Col>1 of 3</Col>
-          <Col>2 of 3</Col>
-          <Col>3 of 3</Col>
-        </Row>
-        <Row xs="auto">
-          <Col>1 of 3</Col>
-          <Col>2 of 3</Col>
-          <Col>3 of 3</Col>
-        </Row>
-      </Container>
-    );
+const Home = () => {
+  const navigate = useNavigate();
+  return (
+    <>
+      <h1 style={{textTransform:'uppercase'}}>welcome to Cimple Dai company!</h1>
+      <button className="btn btn-primary" onClick={() => navigate('/governance', { replace: true })}>Go Back</button>
+    </>
+  );
 };
 
 export default Home;

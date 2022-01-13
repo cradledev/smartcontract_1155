@@ -14,11 +14,11 @@ function App () {
       <BrowserRouter>
         <Navbar collapseOnSelect expand="lg" bg="dark" variant="dark">
           <Container fluid>
-            <Navbar.Brand href="#home">Cimple</Navbar.Brand>
+            <Navbar.Brand href="/governance">Cimple</Navbar.Brand>
             <Navbar.Toggle aria-controls="responsive-navbar-nav" />
             <Navbar.Collapse id="responsive-navbar-nav">
               <Nav className="me-auto">
-                <Nav.Link as={Link} to="/">Home</Nav.Link>
+                {/* <Nav.Link as={Link} to="/">Home</Nav.Link> */}
                 <Nav.Link as={Link} to="/governance">Governance</Nav.Link>
                 <Nav.Link as={Link}  to="/nftMarket">NFT Market</Nav.Link>
               </Nav>
@@ -28,7 +28,7 @@ function App () {
         <Routes>
           <Route path="/governance" element={<Governance />} />
           <Route path="/nftMarket" element={<NftMarket />} />
-          <Route path="/" exact element={<Home />} />
+          <Route path="/" exact element={<Governance />} />
         </Routes>
       </BrowserRouter>
     </div>
