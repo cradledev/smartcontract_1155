@@ -38,7 +38,6 @@ contract CimpleDAO is ERC1155, Ownable {
 
     //staking part config
     address[] internal stakeholders; 
-    mapping(address => uint256) internal rewards; //CMPG Token Distribute
     // End staking part config
 
     // mintable modifier
@@ -50,6 +49,7 @@ contract CimpleDAO is ERC1155, Ownable {
     // event calculatedCimpleIR (uint256 indexed ciIR, uint256 curTimeStamp);
     constructor() ERC1155("") {
         deployedStartTimeStamp = block.timestamp;
+        tokenSupplyLimit[CMPG] = 1e8;
         _addOrUpdateUserInfo(msg.sender);
     }
 
@@ -205,7 +205,7 @@ contract CimpleDAO is ERC1155, Ownable {
     * @return bool, uint256 Whether the address is a stakeholder,
     * and if so its position in the stakeholders array.
     */
-    function isStakeholder(address _address) internal pure returns(bool, uint256) {
+    function isStakeholder(address _address) internal view returns(bool, uint256) {
        for (uint256 s = 0; s < stakeholders.length; s += 1){
            if (_address == stakeholders[s]) return (true, s);
        }
@@ -261,18 +261,28 @@ contract CimpleDAO is ERC1155, Ownable {
         if(balanceOf(unstaker, stCimple) == 0) removeStakeholder(unstaker);
         mint(unstaker, Cimple, _stake);
     }
-    // Reward related to CMPG
-    function rewardOf(address _stakeholder) public view returns(uint256) {
-        return rewards[_stakeholder];
+   
+    function totalRewards() public view  returns(uint256) {
+        uint256 _totalRewards = 0;
+        for (uint256 s = 0; s < stakeholders.length; s += 1){
+           _totalRewards = _totalRewards.add(balanceOf(stakeholders[s], CMPG));
+        }
+        return _totalRewards;
     }
-    function totalRewards() public view
-       returns(uint256)
-   {
-       uint256 _totalRewards = 0;
-       for (uint256 s = 0; s < stakeholders.length; s += 1){
-           _totalRewards = _totalRewards.add(rewards[stakeholders[s]]);
-       }
-       return _totalRewards;
-   }
+    function calculateReward(address _stakeholder) public view returns(uint256) {
+
+        return balanceOf(_stakeholder, stCimple) / 100;
+    }
+
+    /**
+    * @notice A method to distribute rewards to all stakeholders.
+    */
+    function distributeRewards() public onlyOwner {
+        for (uint256 s = 0; s < stakeholders.length; s += 1){
+            address stakeholder = stakeholders[s];
+            uint256 reward = calculateReward(stakeholder);
+            mint(stakeholder, stCimple, reward);
+        }
+    }
     // End staking part 
 }
