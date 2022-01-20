@@ -9,8 +9,9 @@ module.exports = {
     development: {
       host: "127.0.0.1",
       port: 7545,
-      // gas: 5000000,
-      // gasPrice: 5000000000, // 5 gwei
+      gas: 4600000,
+      gaslimit:9007199254740991,
+      gasPrice: 20000000000,
       network_id: "*" // Match any network id
     },
     kovan: {

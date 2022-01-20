@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.6.0 <0.8.0;
+
 pragma experimental ABIEncoderV2;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/math/SafeMath.sol";
@@ -15,7 +16,14 @@ contract CimpleDAO is ERC1155, Ownable {
     mapping(uint256 => uint256) public tokenBurn;
     mapping(uint256 => uint256) public tokenSupplyLimit;
     mapping(uint256 => address) nftOwners;
+    uint256 public nftIdIndex;
+    
+    // Decimal config
+    uint256 public constant CMPGDecimal = 18; //CMPG decimal
+    uint256 public constant CMPGDistributionPercentDecimal = 10; //distribution cmpg percent decimal
+    uint256 public constant DailyCMPGSupplyDecreasePercentDecimal = 10; // daily cmpg supply percent decimal
 
+    // Timestamp config
     uint256 private deployedStartTimeStamp; // contract deployed timestamp * this is in need to calculate cimpleIR, etc
     uint256 private constant oneSecondTimeStamp = 1; 
     uint256 private constant oneDayTimeStamp = 864 * 1e2; // timestamp per day
@@ -37,7 +45,11 @@ contract CimpleDAO is ERC1155, Ownable {
     mapping (address=>UserDetail) private usersInfo;
 
     //staking part config
-    address[] internal stakeholders; 
+    struct StakeHolder {
+        address holderAddress;
+        uint256 holdTimeStamp;
+    }
+    StakeHolder[] internal stakeholders; 
     // End staking part config
 
     // mintable modifier
@@ -49,10 +61,14 @@ contract CimpleDAO is ERC1155, Ownable {
     // event calculatedCimpleIR (uint256 indexed ciIR, uint256 curTimeStamp);
     constructor() ERC1155("") {
         deployedStartTimeStamp = block.timestamp;
-        tokenSupplyLimit[CMPG] = 1e8;
-        _addOrUpdateUserInfo(msg.sender);
+        // tokenSupplyLimit[CMPG] = 1e8;
+        // registeredUsers[msg.sender] = false;
+        // _addOrUpdateUserInfo(msg.sender);
     }
-
+    // get CMPG decimal
+    function getCMPGDecimal() public view returns(uint256){
+        return CMPGDecimal;
+    }
     /** Add multiple addresses to mintableRoleList */
     function multipleAddressesToMintableRoleList(address[] memory addresses) public onlyOwner {
         for(uint256 i =0; i < addresses.length; i++) {
@@ -63,9 +79,11 @@ contract CimpleDAO is ERC1155, Ownable {
     /** Add single address to mintableRoleList */
     function singleAddressToMintableRoleList(address userAddress) public onlyOwner {
         require(userAddress != address(0), "Address can not be zero");
-        mintRoleList[userAddress] = true;
-        totalMintRoleList++;
-        _addOrUpdateUserInfo(userAddress);
+        if(!mintRoleList[userAddress]) {
+            mintRoleList[userAddress] = true;
+            totalMintRoleList++;
+            _addOrUpdateUserInfo(userAddress);
+        }
     }
 
     /** Remove multiple addresses from mintableRoleList */
@@ -78,8 +96,10 @@ contract CimpleDAO is ERC1155, Ownable {
     /** Remove single address from mintableRoleList */
     function removeAddressFromMintableRoleList(address userAddress) public onlyOwner {
         require(userAddress != address(0), "Address can not be zero");
-        mintRoleList[userAddress] = false;
-        totalMintRoleList--;
+        if(mintRoleList[userAddress]){
+            mintRoleList[userAddress] = false;
+            totalMintRoleList--;
+        }
     }
     function setURI(string memory newuri) public onlyOwner {
         _setURI(newuri);
@@ -207,7 +227,7 @@ contract CimpleDAO is ERC1155, Ownable {
     */
     function isStakeholder(address _address) internal view returns(bool, uint256) {
        for (uint256 s = 0; s < stakeholders.length; s += 1){
-           if (_address == stakeholders[s]) return (true, s);
+           if (_address == stakeholders[s].holderAddress) return (true, s);
        }
        return (false, 0);
     }
@@ -215,9 +235,9 @@ contract CimpleDAO is ERC1155, Ownable {
     * @notice A method to add a stakeholder.
     * @param _stakeholder The stakeholder to add.
     */
-    function addStakeholder(address _stakeholder) public {
+    function addStakeholder(address _stakeholder, uint256 _timeStamp) public {
         (bool _isStakeholder, ) = isStakeholder(_stakeholder);
-        if(!_isStakeholder) stakeholders.push(_stakeholder);
+        if(!_isStakeholder) stakeholders.push(StakeHolder(_stakeholder, _timeStamp));
     }
 
     /**
@@ -238,7 +258,7 @@ contract CimpleDAO is ERC1155, Ownable {
     function totalStakes() public view returns(uint256) {
        uint256 _totalStakes = 0;
        for (uint256 s = 0; s < stakeholders.length; s += 1){
-           _totalStakes = _totalStakes.add(balanceOf(stakeholders[s], stCimple));
+           _totalStakes = _totalStakes.add(balanceOf(stakeholders[s].holderAddress, stCimple));
        }
        return _totalStakes;
     }
@@ -248,8 +268,12 @@ contract CimpleDAO is ERC1155, Ownable {
     */
     function createStake(address staker, uint256 _stake) public onlyOwner{
         burn(staker, Cimple, _stake);
-        if(balanceOf(staker, stCimple) == 0) addStakeholder(staker);
         mint(staker, stCimple, _stake);
+        tokenSupply[stCimple] = tokenSupply[stCimple].add(_stake);
+        tokenSupply[Cimple] = tokenSupply[Cimple].sub(_stake);
+        (bool _isStakeholder, uint256 s) = isStakeholder(staker);
+        if(!_isStakeholder) addStakeholder(staker, block.timestamp);
+        else stakeholders[s].holdTimeStamp = block.timestamp;
     }
 
     /**
@@ -257,31 +281,85 @@ contract CimpleDAO is ERC1155, Ownable {
         * @param _stake The size of the stake to be removed.
         */
     function removeStake(address unstaker, uint256 _stake) public onlyOwner{
-        burn(unstaker, stCimple, _stake);
-        if(balanceOf(unstaker, stCimple) == 0) removeStakeholder(unstaker);
-        mint(unstaker, Cimple, _stake);
+        (bool _isStakeholder, uint256 s) = isStakeholder(unstaker);
+        if(_isStakeholder){
+            burn(unstaker, stCimple, _stake);
+            mint(unstaker, Cimple, _stake);
+            tokenSupply[stCimple] = tokenSupply[stCimple].sub(_stake);
+            tokenSupply[Cimple] = tokenSupply[Cimple].add(_stake);
+            if(balanceOf(unstaker, stCimple) == 0) removeStakeholder(unstaker);
+            else stakeholders[s].holdTimeStamp = block.timestamp;
+        }
     }
    
     function totalRewards() public view  returns(uint256) {
         uint256 _totalRewards = 0;
         for (uint256 s = 0; s < stakeholders.length; s += 1){
-           _totalRewards = _totalRewards.add(balanceOf(stakeholders[s], CMPG));
+           _totalRewards = _totalRewards.add(balanceOf(stakeholders[s].holderAddress, CMPG));
         }
         return _totalRewards;
     }
-    function calculateReward(address _stakeholder) public view returns(uint256) {
+    function calculateReward(address _stakeholder, uint256 _holdTimeStamp, uint256 _nowTimeStamp) public view returns(uint256) {
+        if(_nowTimeStamp > _holdTimeStamp && _holdTimeStamp != 0){
+            uint256 _distributionPercentOfCMPG = _calculateDistributionPercentOfCMPG(_stakeholder);
+            uint256 _dayCountAtNow = _nowTimeStamp.sub(deployedStartTimeStamp).div(oneDayTimeStamp);
+            uint256 _extraTimeCountAtNow = _nowTimeStamp.sub(deployedStartTimeStamp).mod(oneDayTimeStamp);
 
-        return balanceOf(_stakeholder, stCimple) / 100;
+            uint256 _dayCountAtHold = _holdTimeStamp.sub(deployedStartTimeStamp).div(oneDayTimeStamp);
+            uint256 _extraTimeCountAtHold = _holdTimeStamp.sub(deployedStartTimeStamp).mod(oneDayTimeStamp);
+            uint256 _holdPeriodDayCount = _dayCountAtNow - _dayCountAtHold;
+            uint256 _minusCMPGAmountAtHold;
+            (uint256 _tempPerDay, uint256 _tempPerTime) = _calculateDailySupplyOfCMPG(_dayCountAtHold);
+            _minusCMPGAmountAtHold = _tempPerTime * _extraTimeCountAtHold * _distributionPercentOfCMPG / 1e10;
+            uint256 _availableRewardAmount;
+            for (uint256 index = 0; index < _holdPeriodDayCount; index++) {
+                (uint256 _dailySupplyOfCMPG, uint256 _perTimeSupplyAmount) = _calculateDailySupplyOfCMPG(_dayCountAtHold + index);
+                _availableRewardAmount += _dailySupplyOfCMPG * _distributionPercentOfCMPG / 1e10;
+            }
+            uint256 _plusCMPGAmountAtHold;
+            (uint256 _tempPerDay1, uint256 _tempPerTime1) = _calculateDailySupplyOfCMPG(_dayCountAtNow);
+            _plusCMPGAmountAtHold = _tempPerTime1 * _extraTimeCountAtNow * _distributionPercentOfCMPG / 1e10;
+            _availableRewardAmount = _availableRewardAmount + _plusCMPGAmountAtHold - _minusCMPGAmountAtHold;
+            return _availableRewardAmount;
+        }else {
+            return 0;
+        }
+        
     }
-
+    // daily supply of CMPG token 
+    function _calculateDailySupplyOfCMPG(uint _days) public view returns (uint256, uint256) {
+        uint256 _initSupplyOfCMPG = 32913 * (10 ** CMPGDecimal);
+        uint256 _dailyDecreasePercent = 358059438; // 1e10 decimal
+        uint256 _dailyDecreasePercentDecimal = 1e10;
+        uint256 _dailySupplyAmount = _initSupplyOfCMPG;
+        if(_days >= 1){
+            for (uint256 index = 0; index < _days; index++) {
+                _dailySupplyAmount = _dailySupplyAmount - _dailySupplyAmount * _dailyDecreasePercent / _dailyDecreasePercentDecimal;
+            }
+        }
+        uint256 _perTimeSupplyAmount = _dailySupplyAmount / oneDayTimeStamp;
+        return (_dailySupplyAmount, _perTimeSupplyAmount);
+    }
+    function _calculateDistributionPercentOfCMPG(address _address) public view returns(uint256) {
+        (bool _isStakeHolder, ) = isStakeholder(_address);
+        if(stakeholders.length > 0 && _isStakeHolder){
+            uint256 _totalRewardOfCMPG = totalStakes();
+            uint256 _amountCMPGOfHolder = balanceOf(_address, stCimple);
+            uint256 _distributionPercent = (10 ** CMPGDistributionPercentDecimal) * _amountCMPGOfHolder / _totalRewardOfCMPG;
+            return _distributionPercent;
+        }
+    }
     /**
     * @notice A method to distribute rewards to all stakeholders.
     */
-    function distributeRewards() public onlyOwner {
+    function distributeRewards(uint256 _timeStamp) public onlyOwner {
         for (uint256 s = 0; s < stakeholders.length; s += 1){
-            address stakeholder = stakeholders[s];
-            uint256 reward = calculateReward(stakeholder);
-            mint(stakeholder, stCimple, reward);
+            StakeHolder memory stakeholder = stakeholders[s];
+            uint256 reward = calculateReward(stakeholder.holderAddress, stakeholder.holdTimeStamp, _timeStamp);
+            if(reward > 0) {
+                mint(stakeholder.holderAddress, CMPG, reward);
+                tokenSupply[CMPG] = tokenSupply[CMPG].add(reward);
+            }
         }
     }
     // End staking part 
