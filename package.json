@@ -1,5 +1,5 @@
 {
-  "name": "Cimple DAO prototype Governance",
+  "name": "CimpleDAO",
   "version": "0.1.0",
   "description": "Decentralized Bank",
   "author": "Wolf company member",
@@ -36,6 +36,7 @@
     "react-scripts": "3.4.3",
     "truffle": "5.1.63",
     "truffle-hdwallet-provider-privkey": "0.3.0",
+    "voucher-code-generator": "^1.1.1",
     "web3": "1.2.6"
   },
   "scripts": {

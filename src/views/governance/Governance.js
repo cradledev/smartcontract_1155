@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useNavigate} from "react-router";
 import { ethers } from 'ethers';
 import { Container, Row, Col, Card, Button, Image, ListGroup, InputGroup,Form, FormControl,ProgressBar } from "react-bootstrap";
@@ -8,13 +8,31 @@ import Icon from "react-crypto-icons";
 import { LoadBlockchainData  } from "../../components/utils/LoadBlockchainData";
 import './Governance.css';
 
+    
+function useInterval(callback, delay) {
+  const savedCallback = useRef();
+
+  // Remember the latest callback.
+  useEffect(() => {
+    savedCallback.current = callback;
+  }, [callback]);
+
+  // Set up the interval.
+  useEffect(() => {
+    let id = setInterval(() => {
+      savedCallback.current();
+    }, delay);
+    return () => clearInterval(id);
+  }, [delay]);
+}
+
 const Governance = () => {
   const [wallet, setWallet] = useState('undefined');
   const [status, setStatus] = useState('');
   const [cimpleDaoContract, setCimpleDaoContract] = useState('');
-  const [daoLobbyContract, setDaoLobbyContract] = useState('');
+  const [cimpleNFTContract, setCimpleNFTContract] = useState('');
   const [cimpleDaoAddress, setCimpleDaoAddress] = useState('');
-  const [daoLobbyAddress, setDaoLobbyAddress] = useState('');
+  const [cimipleNFTAddress, setCimpleNFTAddress] = useState('');
   const [balance, setBalance] = useState('');
   const [web3, setWeb3] = useState('');
   const [processing, setProcessing] = useState(false);
@@ -23,13 +41,16 @@ const Governance = () => {
   const [cimpleIR, setCimpleIR] = useState(0);
   const [cimpleIRAfterOneYear, setCimpleIRAfterOneYear] = useState(0);
   const [unstakeAmount, setUnstakeAmount] = useState(0);
-
+  const [cmpgBalanceCalculated, setCmpgBalanceCalculated] = useState(0);
   // tokens balance
   const [balanceOfCimpleToken, setBalanceOfCimpleToken] = useState(0);
   const [balanceOfstCimpleToken, setBalanceOfstCimpleToken] = useState(0);
+  const [balanceOfCMPG, setBalanceOfCMPG] = useState(0);
 
   const[stakeAmount, setStakeAmount] = useState(0);
 
+  // nft user list
+  const[nftFirstUserList, setNftFirstUserList] = useState([]);
   const navigate = useNavigate();
   // const location = useLocation();
   // Fictive call to Google Analytics
@@ -53,6 +74,21 @@ const Governance = () => {
     {description:"Update Cimple Staking allocation", status:1, progress:50}
   ];
 
+  useInterval(async () => {
+    try {
+      let sTimeStamp = Date.now();
+      sTimeStamp = Math.floor(sTimeStamp / 1000);
+      const balanceOfCMPG = await cimpleDaoContract.balanceOf(wallet, 2);
+      setBalanceOfCMPG(ethers.utils.formatUnits(balanceOfCMPG, 28));
+      const [ss, ss1, ss2] = await cimpleDaoContract.testCalculateReward(wallet, sTimeStamp);
+      setCmpgBalanceCalculated(ethers.utils.formatUnits(ss, 28))
+      // const userInfo = await cimpleDaoContract.getUserInfo(wallet);
+      // console.log(userInfo.cimpleValue);
+      // console.log(ethers.utils.formatUnits(ss, 0), ethers.utils.formatUnits(ss1, 0), ethers.utils.formatUnits(ss2, 0));
+    } catch (error) {
+      console.log("error is ", error);
+    }
+  }, 10000)
   // function addWalletListener() {
   //   if (window.ethereum) {
   //     window.ethereum.on("accountsChanged", (accounts) => {
@@ -106,9 +142,9 @@ const Governance = () => {
           // User inputs amount in terms of Ether, convert to Wei before sending to the contract.
           // const wei = ethers.utils.parseUnits(stakeAmount, 18);
           // console.log(wei);
-          await daoLobbyContract.stakingCimpleToken(wallet, stakeAmount);
+          await cimpleDaoContract.createStake(wallet, stakeAmount);
           // Wait for the smart contract to emit the LogBid event then update component state
-          daoLobbyContract.on('StakingCimpleToken', (_, __) => {
+          cimpleDaoContract.on('StakingCimpleToken', (_, __) => {
             getBalanceForSeveralTokens();
           });
           
@@ -122,7 +158,7 @@ const Governance = () => {
     }
   }
   async function submitUnstaking() {
-    if(unstakeAmount === 0) {
+    if(unstakeAmount === 0 || unstakeAmount === "") {
       alert("Enter the amount more than 0");
     }else{
       if(unstakeAmount*1 <= balanceOfstCimpleToken*1) {
@@ -130,10 +166,11 @@ const Governance = () => {
           // User inputs amount in terms of Ether, convert to Wei before sending to the contract.
           // const wei = ethers.utils.parseUnits(stakeAmount, 18);
           // console.log(wei);
-          await daoLobbyContract.unstakingCimpleToken(wallet, unstakeAmount);
+          await cimpleDaoContract.removeStake(wallet, unstakeAmount);
           // Wait for the smart contract to emit the LogBid event then update component state
-          daoLobbyContract.on('UnstakingCimpleToken', (_, __) => {
+          cimpleDaoContract.on('UnstakingCimpleToken', (_, __) => {
             getBalanceForSeveralTokens();
+            setUnstakeAmount(0);
           });
           
         } catch (e) {
@@ -148,14 +185,14 @@ const Governance = () => {
   async function submitPayFee(event) {
     event.preventDefault();
     setProcessing(true);
-    if(daoLobbyContract !== 'undefined'){
+    if(cimpleDaoContract !== 'undefined'){
       if(payTypeForFee === "ETH"){
         if(payFeeAmount > 0){
           try {
             const wei = ethers.utils.parseUnits(payFeeAmount, 18);
-            await daoLobbyContract.payFee({value: wei.toString(), from:wallet});
+            await cimpleDaoContract.payFee({value: wei.toString(), from:wallet});
             // Wait for the smart contract to emit the LogBid event then update component state
-            daoLobbyContract.on('PayFee', (_, __) => {
+            cimpleDaoContract.on('PayFee', (_, __) => {
               getBalanceForSeveralTokens();
             });
             
@@ -173,9 +210,9 @@ const Governance = () => {
           try {
             const wei = payFeeAmount;
             // console.log(wei);
-            await daoLobbyContract.payFeeByToken(wallet, wei);
+            await cimpleDaoContract.payFeeByToken(wallet, wei);
             setProcessing(true);
-            daoLobbyContract.on('PayFee', (_, __) => {
+            cimpleDaoContract.on('PayFee', (_, __) => {
               getBalanceForSeveralTokens();
               setProcessing(false);
             });
@@ -212,11 +249,11 @@ const Governance = () => {
   }
   useEffect(async() => {
     try {
-      const {cimpleDaoContract, daoLobbyContract, cimpleDaoAddress, daoLobbyAddress, balance, web3, address} = await LoadBlockchainData();
+      const {cimpleDaoContract, cimpleNFTContract, cimpleDaoAddress,ciimpleNFTAddress, balance, web3, address} = await LoadBlockchainData();
       setCimpleDaoContract(cimpleDaoContract);
-      setDaoLobbyContract(daoLobbyContract);
+      setCimpleNFTContract(cimpleNFTContract);
       setCimpleDaoAddress(cimpleDaoAddress);
-      setDaoLobbyAddress(daoLobbyAddress);
+      setCimpleNFTAddress(ciimpleNFTAddress);
       setBalance(balance);
       setWeb3(web3);
       setWallet(address);
@@ -235,6 +272,13 @@ const Governance = () => {
 
       const[cimpleIRAfterOneYear, ss1, ss2] = await cimpleDaoContract.calculateCimpleIR(sTimeStampAfterOneYear);
       setCimpleIRAfterOneYear(ethers.utils.formatUnits(cimpleIRAfterOneYear, 18));
+      // const [ff, sd] = await cimpleDaoContract.getStakeHolders();
+      // console.log(ff, sd);
+
+      // NFT First users list
+      const nftUserList = await cimpleDaoContract.getNFTUserListAtFirst();
+      console.log(nftUserList);
+      setNftFirstUserList(nftUserList);
     } catch (error) {
       console.log(error);
       // alert("Contract is not loaded yet.");
@@ -337,7 +381,7 @@ const Governance = () => {
                   </Card.Text>
                   <Card.Title><label className="card-title-small">your cmpg balance</label></Card.Title>
                   <Card.Text>
-                    <Image src="/img/governance/CMPG_token.png" className="img-responsive" style={{width:'45px', height:'45px'}}></Image> <label className="text-bolder paddingLeft15">7499 Cimple</label>
+                    <Image src="/img/governance/CMPG_token.png" className="img-responsive" style={{width:'45px', height:'45px'}}></Image> <label className="text-bolder paddingLeft15">{cmpgBalanceCalculated*1 + balanceOfCMPG*1} CMPG</label>
                   </Card.Text>
                   <ListGroup variant="flush">
                     <ListGroup.Item
@@ -400,7 +444,7 @@ const Governance = () => {
                       }}
                     />
                   </InputGroup>
-                  <Button variant="outline-primary" onClick={submitUnstaking} size="md" style={{marginTop:'10px', marginBottom:'10px'}}>Withdraw</Button>
+                  <Button variant="outline-primary" onClick={submitUnstaking} size="md" style={{marginTop:'10px', marginBottom:'10px'}}>Unstaking</Button>
                 </Card.Footer>
               </Card>
             </Col>

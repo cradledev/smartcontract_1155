@@ -1,15 +1,19 @@
 import { ethers } from 'ethers';
 import Web3 from 'web3';
 import CimpleDAO from '../../abis/CimpleDAO.json'
-import DaoLobby from '../../abis/DaoLobby.json'
+import CimpleNFT from '../../abis/NFT.json'
 import { ConnectWallet } from "../../components/utils/ConnectWallet";
+
+const CIMPLEDAODEPLOYEDADDRESS = "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0";
+const CIMPLENFTDEPLOYEDADDRESS = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
+
 export const LoadBlockchainData = async () => {
     if(typeof window.ethereum !== 'undefined'){
         const provider = new ethers.providers.Web3Provider(window.ethereum, 'any');
         const signer = provider.getSigner();
   
         const web3 = new Web3(window.ethereum)
-        const netId = await web3.eth.net.getId()
+        // const netId = await web3.eth.net.getId()
         const { address } = await ConnectWallet();
         let balance = 0;
         //load balance
@@ -21,15 +25,16 @@ export const LoadBlockchainData = async () => {
   
         //load contracts
         try {
-            const _cimpleDao = new ethers.Contract(CimpleDAO.networks[netId].address, CimpleDAO.abi, signer)
-            const _daoLobby = new ethers.Contract(DaoLobby.networks[netId].address, DaoLobby.abi, signer)
-            const _daoLobbyAddress = DaoLobby.networks[netId].address
-            const _cimpleDaoAddress = CimpleDAO.networks[netId].address
+            
+            const _cimpleDao = new ethers.Contract(CIMPLEDAODEPLOYEDADDRESS, CimpleDAO.abi, signer)
+            const _cimpleNFT = new ethers.Contract(CIMPLENFTDEPLOYEDADDRESS, CimpleNFT.abi, signer)
+            // const _daoLobbyAddress = DaoLobby.networks[netId].address
+            // const _cimpleDaoAddress = CIMPLEDAODEPLOYEDADDRESS;
             return {
                 cimpleDaoContract:_cimpleDao,
-                daoLobbyContract:_daoLobby,
-                cimpleDaoAddress:_cimpleDaoAddress,
-                daoLobbyAddress:_daoLobbyAddress,
+                cimpleNFTContract:_cimpleNFT,
+                cimpleDaoAddress:CIMPLEDAODEPLOYEDADDRESS,
+                ciimpleNFTAddress:CIMPLENFTDEPLOYEDADDRESS,
                 balance:balance,
                 web3:web3,
                 address:address
